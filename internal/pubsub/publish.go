@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/temporalvoyage/learn-pub-sub-starter/internal/routing"
 )
 
 func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
@@ -16,4 +17,18 @@ func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
 		ContentType: "application/json",
 		Body:        dat,
 	})
+}
+
+func DeclareAndBind(conn *amqp.Connection, exchange, queueName, key string, simpleQueueType int) (*amqp.Channel, amqp.Queue, error) {
+	ch, err := conn.Channel()
+	if err != nil {
+		return nil, amqp.Queue{}, err
+	}
+
+	queue, err := ch.QueueDeclare(queueName, routing.Durable == simpleQueueType, routing.Transient == simpleQueueType, routing.Transient == simpleQueueType, false, nil)
+	if err != nil {
+		return nil, amqp.Queue{}, err
+	}
+	ch.QueueBind(queueName, routing.PauseKey, exchange, false, nil)
+	return ch, queue, nil
 }

@@ -14,3 +14,7 @@ const (
 	ExchangePerilDirect = "peril_direct"
 	ExchangePerilTopic  = "peril_topic"
 )
+const (
+	Transient = 0
+	Durable   = 1
+)
