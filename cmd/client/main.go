@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/temporalvoyage/learn-pub-sub-starter/internal/gamelogic"
@@ -28,15 +26,52 @@ func main() {
 	if err != nil {
 		log.Fatalf("welcome failed: %v", err)
 	}
-	_, queue, err := pubsub.DeclareAndBind(conn, routing.ExchangePerilDirect, fmt.Sprintf("%v.%v", routing.PauseKey, username), routing.PauseKey, routing.Transient)
+	queName := fmt.Sprintf("%v.%v", routing.PauseKey, username)
+	_, queue, err := pubsub.DeclareAndBind(conn, routing.ExchangePerilDirect, queName, routing.PauseKey, routing.Transient)
 
 	if err != nil {
 		log.Fatalf("could not subscribe to pause: %v", err)
 	}
 	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
-	// wait for ctrl+c
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	<-signalChan
+	gameState := gamelogic.NewGameState(username)
+
+	pubsub.SubscribeJSON(conn, routing.ExchangePerilDirect, queName, routing.PauseKey, routing.Transient, handlerPause(gameState))
+
+	for {
+		input := gamelogic.GetInput()
+		if len(input) == 0 {
+			continue
+		}
+		switch input[0] {
+		case "spawn":
+			err := gameState.CommandSpawn(input)
+			if err != nil {
+				log.Printf("Error spawning unit: %v", err)
+			}
+		case "move":
+			_, err := gameState.CommandMove(input)
+			if err != nil {
+				log.Printf("Erro moving unit: %v", err)
+			}
+		case "status":
+			gameState.CommandStatus()
+		case "help":
+			gamelogic.PrintClientHelp()
+		case "spam":
+			fmt.Println("Spamming not allowed yet!")
+		case "quit":
+			gamelogic.PrintQuit()
+			return
+		default:
+			fmt.Println("Unknown command")
+		}
+	}
+}
+
+func handlerPause(gs *gamelogic.GameState) func(routing.PlayingState) {
+	return func(ps routing.PlayingState) {
+		defer fmt.Print("> ")
+		gs.HandlePause(ps)
+	}
 }

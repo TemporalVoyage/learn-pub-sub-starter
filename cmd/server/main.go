@@ -24,6 +24,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create channel: %v", err)
 	}
+	_, perilQueue, err := pubsub.DeclareAndBind(conn, routing.ExchangePerilTopic, routing.GameLogSlug, fmt.Sprintf("%v.*", routing.GameLogSlug), routing.Durable)
+
+	if err != nil {
+		log.Fatalf("could not bind to queue: %v", err)
+	}
+
+	fmt.Printf("Queue %v declared and bound!\n", perilQueue.Name)
 
 	gamelogic.PrintServerHelp()
 
@@ -32,7 +39,8 @@ func main() {
 		if len(input) == 0 {
 			continue
 		}
-		if input[0] == "pause" {
+		switch input[0] {
+		case "pause":
 			fmt.Println("Sending Paused command")
 			err = pubsub.PublishJSON(
 				publishCh,
@@ -46,8 +54,7 @@ func main() {
 				log.Printf("could not publish time: %v", err)
 			}
 			fmt.Println("Pause message sent!")
-		}
-		if input[0] == "resume" {
+		case "resume":
 			fmt.Println("Sending Resume command")
 			err = pubsub.PublishJSON(
 				publishCh,
@@ -61,6 +68,10 @@ func main() {
 				log.Printf("could not publish time: %v", err)
 			}
 			fmt.Println("Game resumed!")
+		case "quit":
+			return
+		default:
+			fmt.Println("Unknown command")
 		}
 	}
 }
