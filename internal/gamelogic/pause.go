@@ -6,7 +6,7 @@ import (
 	"github.com/temporalvoyage/learn-pub-sub-starter/internal/routing"
 )
 
-func (gs *GameState) HandlePause(ps routing.PlayingState) {
+func (gs *GameState) HandlePause(ps routing.PlayingState) int {
 	defer fmt.Println("------------------------")
 	fmt.Println()
 	if ps.IsPaused {
@@ -16,4 +16,5 @@ func (gs *GameState) HandlePause(ps routing.PlayingState) {
 		fmt.Println("==== Resume Detected ====")
 		gs.resumeGame()
 	}
+	return routing.Ack
 }

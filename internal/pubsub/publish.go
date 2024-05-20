@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/temporalvoyage/learn-pub-sub-starter/internal/routing"
@@ -27,8 +28,9 @@ func DeclareAndBind(conn *amqp.Connection, exchange, queueName, key string, simp
 		fmt.Println("3")
 		return nil, amqp.Queue{}, err
 	}
-
-	queue, err := ch.QueueDeclare(queueName, routing.Durable == simpleQueueType, routing.Transient == simpleQueueType, routing.Transient == simpleQueueType, false, nil)
+	config := make(amqp.Table)
+	config["x-dead-letter-exchange"] = "peril_dlx"
+	queue, err := ch.QueueDeclare(queueName, routing.Durable == simpleQueueType, routing.Transient == simpleQueueType, routing.Transient == simpleQueueType, false, config)
 	if err != nil {
 
 		fmt.Println("4")
@@ -43,16 +45,14 @@ func DeclareAndBind(conn *amqp.Connection, exchange, queueName, key string, simp
 	return ch, queue, nil
 }
 
-func SubscribeJSON[T any](conn *amqp.Connection, exchange, queueName, key string, simpleQueueType int, handler func(T)) error {
+func SubscribeJSON[T any](conn *amqp.Connection, exchange, queueName, key string, simpleQueueType int, handler func(T) int) error {
 	ch, _, err := DeclareAndBind(conn, exchange, queueName, key, simpleQueueType)
 	if err != nil {
-		fmt.Println("1")
 		return err
 	}
 	del, err := ch.Consume(queueName, "", false, false, false, false, nil)
 
 	if err != nil {
-		fmt.Println("2")
 		return err
 	}
 
@@ -65,8 +65,20 @@ func SubscribeJSON[T any](conn *amqp.Connection, exchange, queueName, key string
 			if err != nil {
 				continue
 			}
-			handler(dat)
-			msg.Ack(false)
+			ackType := handler(dat)
+			switch ackType {
+			case 0:
+				msg.Ack(false)
+				log.Println("Ack")
+			case 1:
+				msg.Nack(false, true)
+				log.Println("NackR")
+			case 2:
+				msg.Nack(false, false)
+				log.Println("NackD")
+			default:
+				log.Println("Default")
+			}
 		}
 	}()
 
