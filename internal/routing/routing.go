@@ -10,16 +10,19 @@ const (
 	GameLogSlug = "game_logs"
 )
 
+type Acktype int
+type SimpleQueueType int
+
 const (
 	ExchangePerilDirect = "peril_direct"
 	ExchangePerilTopic  = "peril_topic"
 )
 const (
-	Transient = 0
-	Durable   = 1
+	SimpleQueueDurable SimpleQueueType = iota
+	SimpleQueueTransient
 )
 const (
-	Ack   = 0
-	NackR = 1
-	NackD = 2
+	Ack Acktype = iota
+	NackDis
+	NackRe
 )

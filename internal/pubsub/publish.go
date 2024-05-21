@@ -21,16 +21,17 @@ func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
 	})
 }
 
-func DeclareAndBind(conn *amqp.Connection, exchange, queueName, key string, simpleQueueType int) (*amqp.Channel, amqp.Queue, error) {
+func DeclareAndBind(conn *amqp.Connection, exchange, queueName, key string, simpleQueueType routing.SimpleQueueType) (*amqp.Channel, amqp.Queue, error) {
 	ch, err := conn.Channel()
 	if err != nil {
 
 		fmt.Println("3")
 		return nil, amqp.Queue{}, err
 	}
-	config := make(amqp.Table)
-	config["x-dead-letter-exchange"] = "peril_dlx"
-	queue, err := ch.QueueDeclare(queueName, routing.Durable == simpleQueueType, routing.Transient == simpleQueueType, routing.Transient == simpleQueueType, false, config)
+	config := amqp.Table{
+		"x-dead-letter-exchange": "peril_dlx",
+	}
+	queue, err := ch.QueueDeclare(queueName, routing.SimpleQueueDurable == simpleQueueType, routing.SimpleQueueTransient == simpleQueueType, routing.SimpleQueueTransient == simpleQueueType, false, config)
 	if err != nil {
 
 		fmt.Println("4")
@@ -45,7 +46,7 @@ func DeclareAndBind(conn *amqp.Connection, exchange, queueName, key string, simp
 	return ch, queue, nil
 }
 
-func SubscribeJSON[T any](conn *amqp.Connection, exchange, queueName, key string, simpleQueueType int, handler func(T) int) error {
+func SubscribeJSON[T any](conn *amqp.Connection, exchange, queueName, key string, simpleQueueType routing.SimpleQueueType, handler func(T) routing.Acktype) error {
 	ch, _, err := DeclareAndBind(conn, exchange, queueName, key, simpleQueueType)
 	if err != nil {
 		return err
@@ -67,17 +68,17 @@ func SubscribeJSON[T any](conn *amqp.Connection, exchange, queueName, key string
 			}
 			ackType := handler(dat)
 			switch ackType {
-			case 0:
+			case routing.Ack:
 				msg.Ack(false)
 				log.Println("Ack")
-			case 1:
-				msg.Nack(false, true)
-				log.Println("NackR")
-			case 2:
+			case routing.NackDis:
 				msg.Nack(false, false)
-				log.Println("NackD")
+				log.Println("NackDis")
+			case routing.NackRe:
+				msg.Nack(false, true)
+				log.Println("NackRe")
 			default:
-				log.Println("Default")
+				log.Println("Unknown")
 			}
 		}
 	}()

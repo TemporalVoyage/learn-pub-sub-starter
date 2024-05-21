@@ -24,7 +24,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create channel: %v", err)
 	}
-	_, perilQueue, err := pubsub.DeclareAndBind(conn, routing.ExchangePerilTopic, routing.GameLogSlug, fmt.Sprintf("%v.*", routing.GameLogSlug), routing.Durable)
+	_, perilQueue, err := pubsub.DeclareAndBind(conn, routing.ExchangePerilTopic, routing.GameLogSlug, fmt.Sprintf("%v.*", routing.GameLogSlug), routing.SimpleQueueDurable)
 
 	if err != nil {
 		log.Fatalf("could not bind to queue: %v", err)
