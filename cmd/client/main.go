@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/temporalvoyage/learn-pub-sub-starter/internal/gamelogic"
@@ -71,7 +73,20 @@ func main() {
 		case "help":
 			gamelogic.PrintClientHelp()
 		case "spam":
-			fmt.Println("Spamming not allowed yet!")
+			if len(input) == 2 {
+				value, err := strconv.Atoi(input[1])
+				if err != nil {
+					fmt.Println("Spam Value not a positive integer.")
+				} else {
+					fmt.Println("Spamming server")
+					for i := 0; i < value; i++ {
+						mal := gamelogic.GetMaliciousLog()
+						pubsub.PublishGob(publishCh, routing.ExchangePerilTopic, fmt.Sprintf("%v.%v", routing.GameLogSlug, username), routing.GameLog{time.Now(), mal, username})
+					}
+				}
+			} else {
+				fmt.Println("Invalid command")
+			}
 		case "quit":
 			gamelogic.PrintQuit()
 			return
