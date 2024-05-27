@@ -81,7 +81,7 @@ func main() {
 					fmt.Println("Spamming server")
 					for i := 0; i < value; i++ {
 						mal := gamelogic.GetMaliciousLog()
-						pubsub.PublishGob(publishCh, routing.ExchangePerilTopic, fmt.Sprintf("%v.%v", routing.GameLogSlug, username), routing.GameLog{time.Now(), mal, username})
+						pubsub.PublishGob(publishCh, routing.ExchangePerilTopic, fmt.Sprintf("%v.%v", routing.GameLogSlug, username), routing.GameLog{CurrentTime: time.Now(), Message: mal, Username: username})
 					}
 				}
 			} else {
